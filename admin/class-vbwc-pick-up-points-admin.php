@@ -55,6 +55,9 @@ class Vbwc_Pick_Up_Points_Admin {
 		// Register necessary Custom Post Types
 		add_action( 'init', [$this, 'register_cpt'] );
 
+		// Generate shipping type on post creation
+		add_action( 'save_post', [$this, 'generate_shipping_type'], 10, 3);
+
 	}
 
 	public function register_cpt() {
@@ -97,11 +100,41 @@ class Vbwc_Pick_Up_Points_Admin {
 			'can_export'          => true,
 			'rewrite'             => true,
 			'capability_type'     => 'post',
-			'supports'            => array( 'title','custom-fields'	)
+			'supports'            => array( 'title'	)
 		);
 		
 		register_post_type( 'pickup-point', $args );
 		
+	}
+
+	public function generate_shipping_type( $post_id, $post, $update ) {
+
+		global $woocommerce;
+		if ( 'pickup-point' === get_post_type( $post_id ) ) {
+			// If this is a revision, don't do anything
+			if ( wp_is_post_revision( $post_id ) || ! $update )
+				return;
+
+			$available_zones = WC_Shipping_Zones::get_zones();
+			
+			// If zone with the same title exists, stop
+			foreach ($available_zones as $the_zone) {
+				if ( $the_zone['zone_name'] === $post->post_title) {
+					return;
+				}
+			}
+
+			// Get existing shipping methods
+			vb_log( $woocommerce->shipping->get_shipping_methods() );
+
+			$shipping_zone = new WC_Shipping_Zone();
+			$shipping_zone->set_zone_name($post->post_title);
+			$shipping_zone->set_zone_order(10);
+			$shipping_zone->create();
+			$shipping_zone->add_shipping_method( 'local_pickup' );
+
+			add_post_meta( $post_id, '_pup_shipping_zone', $shipping_zone->get_id() );
+		}
 	}
 
 	/**

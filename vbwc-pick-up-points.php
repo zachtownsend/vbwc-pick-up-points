@@ -48,6 +48,13 @@ function deactivate_vbwc_pick_up_points() {
 	Vbwc_Pick_Up_Points_Deactivator::deactivate();
 }
 
+function vb_log( $message ) {
+	ob_start();
+	var_export( $message );
+	$message = ob_get_clean();
+	error_log( $message );
+}
+
 register_activation_hook( __FILE__, 'activate_vbwc_pick_up_points' );
 register_deactivation_hook( __FILE__, 'deactivate_vbwc_pick_up_points' );
 
