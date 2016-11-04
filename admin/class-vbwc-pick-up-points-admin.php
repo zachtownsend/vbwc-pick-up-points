@@ -56,8 +56,15 @@ class Vbwc_Pick_Up_Points_Admin {
 		add_action( 'init', [$this, 'register_cpt'] );
 
 		// Generate shipping type on post creation
-		add_action( 'save_post', [$this, 'generate_shipping_type'], 10, 3);
+		add_action( 'save_post', [$this, 'generate_shipping_zone'], 10, 3);
 
+		// Remove the shipping zone when deleting a post
+		add_action( 'trashed_post', [$this, 'delete_shipping_zone'] );
+
+	}
+
+	private function is_pup( $post_id ) {
+		return 'pickup-point' === get_post_type( $post_id );
 	}
 
 	public function register_cpt() {
@@ -107,12 +114,18 @@ class Vbwc_Pick_Up_Points_Admin {
 		
 	}
 
-	public function generate_shipping_type( $post_id, $post, $update ) {
+	public function generate_shipping_zone( $post_id, $post, $update ) {
 
-		global $woocommerce;
-		if ( 'pickup-point' === get_post_type( $post_id ) ) {
-			// If this is a revision, don't do anything
-			if ( wp_is_post_revision( $post_id ) || ! $update )
+		if ( $this->is_pup( $post_id ) ) {
+			
+			global $woocommerce;
+
+			// If:
+			// - the post is a revision,
+			// - update is true, or
+			// - is in trash
+			// ... then don't do nuffin
+			if ( wp_is_post_revision( $post_id ) || ! $update || get_post_status( $post ) === 'trash' )
 				return;
 
 			$available_zones = WC_Shipping_Zones::get_zones();
@@ -125,15 +138,31 @@ class Vbwc_Pick_Up_Points_Admin {
 			}
 
 			// Get existing shipping methods
-			vb_log( $woocommerce->shipping->get_shipping_methods() );
+			
 
 			$shipping_zone = new WC_Shipping_Zone();
 			$shipping_zone->set_zone_name($post->post_title);
-			$shipping_zone->set_zone_order(10);
 			$shipping_zone->create();
 			$shipping_zone->add_shipping_method( 'local_pickup' );
 
-			add_post_meta( $post_id, '_pup_shipping_zone', $shipping_zone->get_id() );
+			// Create a link between the post and the shipping zone
+			add_post_meta( $post_id, '_pup_shipping_zone', $shipping_zone->get_id(), true );
+		}
+	}
+
+	public function delete_shipping_zone( $post_id ) {
+
+		if ( $this->is_pup( $post_id ) ) {
+			
+			// If the post meta exists...
+			if ( $zone_id = get_post_meta( $post_id, '_pup_shipping_zone', true ) ) {
+				// Get the associated shipping zone
+				WC_Shipping_Zones::delete_zone( (int) $zone_id );
+
+				// Remove the post meta association
+				delete_post_meta( $post_id, '_pup_shipping_zone', $zone_id );
+			}
+
 		}
 	}
 
