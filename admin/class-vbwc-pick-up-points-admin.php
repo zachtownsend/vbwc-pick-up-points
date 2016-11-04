@@ -52,6 +52,56 @@ class Vbwc_Pick_Up_Points_Admin {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
+		// Register necessary Custom Post Types
+		add_action( 'init', [$this, 'register_cpt'] );
+
+	}
+
+	public function register_cpt() {
+		
+		/**
+		 * Pick Up Point custom post type
+		 */
+
+		$labels = array(
+			'name'                => __( 'Pick Up Points', $this->plugin_name ),
+			'singular_name'       => __( 'Pick Up Point', $this->plugin_name ),
+			'add_new'             => _x( 'Add New Pick Up Point', $this->plugin_name, $this->plugin_name ),
+			'add_new_item'        => __( 'Add New Pick Up Point', $this->plugin_name ),
+			'edit_item'           => __( 'Edit Pick Up Point', $this->plugin_name ),
+			'new_item'            => __( 'New Pick Up Point', $this->plugin_name ),
+			'view_item'           => __( 'View Pick Up Point', $this->plugin_name ),
+			'search_items'        => __( 'Search Pick Up Points', $this->plugin_name ),
+			'not_found'           => __( 'No Pick Up Points found', $this->plugin_name ),
+			'not_found_in_trash'  => __( 'No Pick Up Points found in Trash', $this->plugin_name ),
+			'parent_item_colon'   => __( 'Parent Pick Up Point:', $this->plugin_name ),
+			'menu_name'           => __( 'Pick Up Points', $this->plugin_name ),
+		);
+		
+		$args = array(
+			'labels'                   => $labels,
+			'hierarchical'        => true,
+			'description'         => 'Pick Up Points for Woocommerce Shop',
+			'taxonomies'          => array(),
+			'public'              => true,
+			'show_ui'             => true,
+			'show_in_menu'        => true,
+			'show_in_admin_bar'   => true,
+			'menu_position'       => null,
+			'menu_icon'           => 'dashicons-location',
+			'show_in_nav_menus'   => true,
+			'publicly_queryable'  => true,
+			'exclude_from_search' => false,
+			'has_archive'         => false,
+			'query_var'           => true,
+			'can_export'          => true,
+			'rewrite'             => true,
+			'capability_type'     => 'post',
+			'supports'            => array( 'title','custom-fields'	)
+		);
+		
+		register_post_type( 'pickup-point', $args );
+		
 	}
 
 	/**
